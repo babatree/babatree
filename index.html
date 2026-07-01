@@ -709,6 +709,7 @@ const HS_TYPES = [{
 }];
 const EU_SET = new Set(["at", "be", "bg", "hr", "cy", "cz", "dk", "ee", "fi", "fr", "de", "gr", "el", "hu", "ie", "it", "lv", "lt", "lu", "mt", "nl", "pl", "pt", "ro", "sk", "si", "es", "se", "austria", "belgium", "bulgaria", "croatia", "cyprus", "czechia", "czechrepublic", "denmark", "estonia", "finland", "france", "germany", "greece", "hungary", "ireland", "italy", "latvia", "lithuania", "luxembourg", "malta", "netherlands", "thenetherlands", "poland", "portugal", "romania", "slovakia", "slovenia", "spain", "sweden"]);
 const normLoc = s => (s || "").trim().toLowerCase().replace(/[.\s]/g, "");
+const titleCase = s => (s || "").replace(/(^|[\s\-\/\n])([a-z])/g, (m, p, c) => p + c.toUpperCase());
 const isEUCountry = s => EU_SET.has(normLoc(s));
 const isCanadaCountry = s => {
   const t = normLoc(s);
@@ -1206,6 +1207,11 @@ function App() {
     return it ? it.name : "";
   };
   const openDoc = (type, parcelId) => {
+    const unpacked = items.length > 0 && items.some(it => parcels.reduce((s, p) => s + (p.lines[it.id] || 0), 0) < it.qty);
+    if (unpacked) {
+      flash("Add every item to a parcel before printing.");
+      return;
+    }
     setDocView({
       type,
       parcelId: parcelId || null
@@ -1762,7 +1768,13 @@ function App() {
     size: 15
   }), " Add another parcel"), /*#__PURE__*/React.createElement("div", {
     className: "bg-white rounded-xl border border-stone-200 p-5"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, (() => {
+    const unpacked = items.filter(it => parcels.reduce((s, p) => s + (p.lines[it.id] || 0), 0) < it.qty);
+    if (items.length === 0 || unpacked.length === 0) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      className: "blink-warn text-center font-bold text-sm py-4 px-4 mb-4"
+    }, "Hey! Some items are not in a parcel yet. Add every item to a parcel before you can print.");
+  })(), /*#__PURE__*/React.createElement("div", {
     className: "font-semibold mb-1"
   }, "Step A - Packing slips ", /*#__PURE__*/React.createElement("span", {
     className: "text-xs font-normal text-stone-400"
@@ -1789,29 +1801,14 @@ function App() {
       className: "text-xs text-red-500"
     }, "enter the weight (kg) first"));
   })), /*#__PURE__*/React.createElement("div", {
-    className: "mt-5 mb-4 bg-amber-50 rounded-lg px-4 py-3"
+    className: "mt-5 mb-4 bg-white rounded-lg border border-stone-200 p-4"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-2 text-sm text-amber-800 font-semibold mb-2"
+    className: "flex items-center gap-2 text-sm font-semibold mb-1"
   }, /*#__PURE__*/React.createElement(Mail, {
     size: 15
-  }), " Packing ready? Send to the invoicing team"), /*#__PURE__*/React.createElement("div", {
-    className: "mb-3"
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    placeholder: "App link (optional)",
-    value: notify.link,
-    onChange: e => setNotify({
-      ...notify,
-      link: e.target.value
-    }),
-    className: "w-full border border-stone-300 rounded-lg px-2 py-1.5 text-sm"
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "bg-white rounded-lg p-3 mb-3"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "text-sm font-semibold mb-1"
-  }, "For Ransford (with documents)"), /*#__PURE__*/React.createElement("p", {
+  }), " Send documents to Ransford"), /*#__PURE__*/React.createElement("p", {
     className: "text-xs text-stone-500 mb-2"
-  }, "First make the one PDF of all documents for this order, then open Ransford's email and attach it."), /*#__PURE__*/React.createElement("div", {
+  }, "First make the one PDF of all documents for this order, then open Ransford's email and attach it. Clicking Email Ransford opens the email already addressed and written - just attach the saved PDF and press Send."), /*#__PURE__*/React.createElement("div", {
     className: "flex flex-wrap gap-2"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => openDoc("ransford-all"),
@@ -1824,23 +1821,6 @@ function App() {
   }, /*#__PURE__*/React.createElement(Send, {
     size: 14
   }), " Email Ransford"))), /*#__PURE__*/React.createElement("div", {
-    className: "flex flex-wrap gap-2"
-  }, /*#__PURE__*/React.createElement("a", {
-    href: packingEmail("gilbert").mailto,
-    className: "inline-flex items-center gap-1 text-sm bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700"
-  }, /*#__PURE__*/React.createElement(Send, {
-    size: 14
-  }), " Email Gilbert"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowDraft(s => !s),
-    className: "text-sm border border-stone-300 px-3 py-1.5 rounded-lg hover:bg-white"
-  }, showDraft ? "Hide" : "Show", " message")), showDraft && /*#__PURE__*/React.createElement("textarea", {
-    readOnly: true,
-    value: packingEmail("ransford").body,
-    rows: 11,
-    className: "w-full mt-2 border border-stone-300 rounded-lg p-2 text-xs bg-white"
-  }), /*#__PURE__*/React.createElement("p", {
-    className: "text-xs text-stone-500 mt-2"
-  }, "Clicking an email button opens the email already addressed and written, where you press Send. Attach the saved PDF before sending.")), /*#__PURE__*/React.createElement("div", {
     className: "font-semibold mb-1 pt-2 border-t border-stone-200"
   }, "Step B - Customs invoices ", /*#__PURE__*/React.createElement("span", {
     className: "text-xs font-normal text-stone-400"
@@ -2095,9 +2075,9 @@ function DocumentView({
     className: "text-stone-500 text-xs"
   }, "Customer"), /*#__PURE__*/React.createElement("div", {
     className: "font-semibold"
-  }, customer.name || "-"), /*#__PURE__*/React.createElement("div", {
+  }, titleCase(customer.name) || "-"), /*#__PURE__*/React.createElement("div", {
     className: "whitespace-pre-line text-stone-600"
-  }, customer.address || ""));
+  }, titleCase(customer.address) || ""));
   const ConversionNote = () => !isUSD ? /*#__PURE__*/React.createElement("div", {
     className: "text-xs text-stone-400 mt-3"
   }, "Amounts shown in USD, converted from ", currency, " at 1 ", currency, " = ", money(rate), " USD.") : null;
@@ -2246,7 +2226,6 @@ function DocumentView({
     const count = rows.reduce((s, r) => s + r.parcelQty, 0);
     const value = rows.reduce((s, r) => s + r.parcelQty * (Number(r.unitPrice) || 0), 0);
     const a = parseAddr(customer.address);
-    const titleCase = s => (s || "").replace(/(^|[\s\-\/])([a-z])/g, (m, p, c) => p + c.toUpperCase());
     const typeNames = HS_TYPES.filter(t => parcel.hs && parcel.hs[t.key]).map(t => t.label);
     const names = typeNames.length ? typeNames : ["Baskets"];
     const joined = names.length === 1 ? names[0] : names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
@@ -2286,7 +2265,7 @@ function DocumentView({
       className: "font-bold text-sm border-b-2 border-stone-800 mb-2 pb-1"
     }, "CONSIGNEE (RECEIVER)"), /*#__PURE__*/React.createElement(F, {
       label: "Name:",
-      val: customer.name
+      val: titleCase(customer.name)
     }), /*#__PURE__*/React.createElement(F, {
       label: "Company Name:",
       val: ""
@@ -2298,13 +2277,13 @@ function DocumentView({
       val: a.zip
     }), /*#__PURE__*/React.createElement(F, {
       label: "City/Town:",
-      val: a.city
+      val: titleCase(a.city)
     }), /*#__PURE__*/React.createElement(F, {
       label: "Tel:",
       val: a.tel
     }), /*#__PURE__*/React.createElement(F, {
       label: "Destination:",
-      val: a.country
+      val: titleCase(a.country)
     }))), /*#__PURE__*/React.createElement("div", {
       className: "font-bold text-sm border-b-2 border-stone-800 mb-2 pb-1"
     }, "FOREIGN PARCEL CONSIGNMENT DETAILS"), /*#__PURE__*/React.createElement("div", {
@@ -2459,6 +2438,9 @@ function DocumentView({
     if (activeParcels.length === 0) return /*#__PURE__*/React.createElement("div", {
       className: "text-center text-stone-400 py-10"
     }, "No parcels with items yet.");
+    if (items.length > 0 && items.some(it => parcels.reduce((s, p) => s + (p.lines[it.id] || 0), 0) < it.qty)) return /*#__PURE__*/React.createElement("div", {
+      className: "blink-warn text-center font-bold text-lg py-6 px-4 max-w-xl mx-auto my-10"
+    }, "Hey! Go back and add every item to a parcel before making the documents.");
     if (activeParcels.some(p => !p.weight)) return /*#__PURE__*/React.createElement("div", {
       className: "blink-warn text-center font-bold text-lg py-6 px-4 max-w-xl mx-auto my-10"
     }, "Hey! Go back and enter the weight (kg) for every parcel before making the documents.");
