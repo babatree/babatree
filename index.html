@@ -54,6 +54,8 @@ if ('serviceWorker' in navigator) {
   }
   .blink-warn { animation: babaFlash 1.1s ease-in-out infinite; border-width:2px; border-style:solid; border-radius:12px; }
   .parcel-badge { display:inline-block; background:#292524; color:#ffffff; font-weight:700; padding:4px 12px; border-radius:6px; font-size:12px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  @keyframes babaPick { 0%,100% { background:#ffffff; border-color:#d6d3d1; } 50% { background:#fde68a; border-color:#f59e0b; } }
+  .blink-pick { animation: babaPick 1.1s ease-in-out infinite; }
   @media print {
     .no-print { display: none !important; }
     .parcel-badge { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background:#292524 !important; color:#fff !important; }
@@ -709,6 +711,22 @@ const HS_TYPES = [{
   label: "Belts & Bandolier",
   code: "420330"
 }];
+const OFFICERS = [{
+  name: "Gilbert Asukre",
+  title: "Logistics Manager"
+}, {
+  name: "Adigvom Ransford",
+  title: "Shipping and Packing Officer"
+}, {
+  name: "Michael Atarika",
+  title: "Packing Officer"
+}, {
+  name: "Marta Atule",
+  title: "Logistics Manager"
+}, {
+  name: "Jemma Nsoyure",
+  title: "Shipping and Packing Officer"
+}];
 const EU_SET = new Set(["at", "be", "bg", "hr", "cy", "cz", "dk", "ee", "fi", "fr", "de", "gr", "el", "hu", "ie", "it", "lv", "lt", "lu", "mt", "nl", "pl", "pt", "ro", "sk", "si", "es", "se", "austria", "belgium", "bulgaria", "croatia", "cyprus", "czechia", "czechrepublic", "denmark", "estonia", "finland", "france", "germany", "greece", "hungary", "ireland", "italy", "latvia", "lithuania", "luxembourg", "malta", "netherlands", "thenetherlands", "poland", "portugal", "romania", "slovakia", "slovenia", "spain", "sweden"]);
 const normLoc = s => (s || "").trim().toLowerCase().replace(/[.\s]/g, "");
 const titleCase = s => (s || "").replace(/(^|[\s\-\/\n])([a-z])/g, (m, p, c) => p + c.toUpperCase());
@@ -954,6 +972,13 @@ function App() {
   const [showChange, setShowChange] = useState(false);
   const [pwInput, setPwInput] = useState("");
   const [pwInput2, setPwInput2] = useState("");
+  const [preparedBy, setPreparedBy] = useState(() => {
+    try {
+      return localStorage.getItem("babatree:preparedby") || "";
+    } catch (e) {
+      return "";
+    }
+  });
   const [pwError, setPwError] = useState("");
   const hashPw = s => {
     let h = 5381;
@@ -995,6 +1020,12 @@ function App() {
   const lockApp = () => {
     setUnlocked(false);
     setPwInput("");
+  };
+  const changePreparedBy = name => {
+    setPreparedBy(name);
+    try {
+      localStorage.setItem("babatree:preparedby", name);
+    } catch (e) {}
   };
   const changePassword = () => {
     if ((pwInput || "").length < 4) {
@@ -1579,6 +1610,19 @@ function App() {
     className: "flex items-center gap-1 ml-auto"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-stone-500"
+  }, "Prepared by:"), /*#__PURE__*/React.createElement("select", {
+    value: preparedBy,
+    onChange: e => changePreparedBy(e.target.value),
+    className: "border border-stone-300 rounded-lg px-2 py-1.5" + (preparedBy ? "" : " blink-pick")
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "- select officer -"), OFFICERS.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o.name,
+    value: o.name
+  }, o.name, " - ", o.title)))), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-stone-500"
   }, "Status:"), /*#__PURE__*/React.createElement("select", {
     value: status,
     onChange: e => setStatus(e.target.value),
@@ -1986,12 +2030,20 @@ function App() {
       available: available,
       onAdd: (itemId, qty) => addToParcel(p.id, itemId, qty)
     }));
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: addParcel,
-    className: "inline-flex items-center gap-1 text-sm bg-stone-800 text-white px-3 py-2 rounded-lg hover:bg-stone-700"
-  }, /*#__PURE__*/React.createElement(Plus, {
-    size: 15
-  }), " Add another parcel"), /*#__PURE__*/React.createElement("div", {
+  })), (() => {
+    const allIn = items.length > 0 && items.every(it => parcels.reduce((s, p) => s + (p.lines[it.id] || 0), 0) >= it.qty);
+    return /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: addParcel,
+      disabled: allIn,
+      className: "inline-flex items-center gap-1 text-sm bg-stone-800 text-white px-3 py-2 rounded-lg hover:bg-stone-700 disabled:opacity-40"
+    }, /*#__PURE__*/React.createElement(Plus, {
+      size: 15
+    }), " Add another parcel"), allIn && /*#__PURE__*/React.createElement("span", {
+      className: "text-xs text-stone-400"
+    }, "all items are in a parcel"));
+  })(), /*#__PURE__*/React.createElement("div", {
     className: "bg-white rounded-xl border border-stone-200 p-5"
   }, (() => {
     const unpacked = items.filter(it => parcels.reduce((s, p) => s + (p.lines[it.id] || 0), 0) < it.qty);
@@ -2186,6 +2238,7 @@ function App() {
     docView: docView,
     customer: customer,
     custType: custType,
+    preparedBy: preparedBy,
     currency: currency,
     rate: effectiveRate,
     extras: extras,
@@ -2254,6 +2307,7 @@ function DocumentView({
   docView,
   customer,
   custType,
+  preparedBy,
   currency,
   rate,
   extras,
@@ -2262,6 +2316,7 @@ function DocumentView({
   parcelItems,
   orderTotal
 }) {
+  const officer = OFFICERS.find(o => o.name === preparedBy) || null;
   const isUSD = currency.toUpperCase() === "USD";
   const usd = n => "$" + money((Number(n) || 0) * (Number(rate) || 0));
   const dollars = n => "$" + money(Number(n) || 0);
@@ -2547,8 +2602,8 @@ function DocumentView({
     const today = String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0") + "/" + d.getFullYear();
     const isWholesale = custType === "wholesale";
     const fumigation = isWholesale ? "This order has been fumigated with one tablet of Phostoxin that has been encased in cotton and is located about a quarter of the way down the sack from the opening." : "This order has been thoroughly fumigated with off the shelf commercial insecticide.";
-    const sigName = isWholesale ? "Gilbert Asukre" : "Adigvom Ransford";
-    const sigTitle = isWholesale ? "Logistics Manager" : "Shipping and Packing Officer";
+    const sigName = officer ? officer.name : isWholesale ? "Gilbert Asukre" : "Adigvom Ransford";
+    const sigTitle = officer ? officer.title : isWholesale ? "Logistics Manager" : "Shipping and Packing Officer";
     return /*#__PURE__*/React.createElement("div", {
       key: key,
       className: "print-area bg-white rounded-xl border border-stone-200 p-8 max-w-2xl mx-auto" + (pageBreak ? " doc-page" : "")
@@ -2598,9 +2653,9 @@ function DocumentView({
       className: "text-sm leading-relaxed"
     }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
       className: "text-stone-500"
-    }, "Name:"), " Adigvom Ransford A."), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    }, "Name:"), " ", officer ? officer.name : "Adigvom Ransford A."), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
       className: "text-stone-500"
-    }, "Title:"), " Shipment & Packaging Officer"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    }, "Title:"), " ", officer ? officer.title : "Shipment & Packaging Officer"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
       className: "text-stone-500"
     }, "Address:"), " Hakim House, Asumda Estates, Tamale Road, Bolgatanga, Upper East Region - Ghana"), /*#__PURE__*/React.createElement("div", {
       className: "mt-4"
