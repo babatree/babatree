@@ -710,6 +710,229 @@ const HS_TYPES = [{
 const EU_SET = new Set(["at", "be", "bg", "hr", "cy", "cz", "dk", "ee", "fi", "fr", "de", "gr", "el", "hu", "ie", "it", "lv", "lt", "lu", "mt", "nl", "pl", "pt", "ro", "sk", "si", "es", "se", "austria", "belgium", "bulgaria", "croatia", "cyprus", "czechia", "czechrepublic", "denmark", "estonia", "finland", "france", "germany", "greece", "hungary", "ireland", "italy", "latvia", "lithuania", "luxembourg", "malta", "netherlands", "thenetherlands", "poland", "portugal", "romania", "slovakia", "slovenia", "spain", "sweden"]);
 const normLoc = s => (s || "").trim().toLowerCase().replace(/[.\s]/g, "");
 const titleCase = s => (s || "").replace(/(^|[\s\-\/\n])([a-z])/g, (m, p, c) => p + c.toUpperCase());
+const COUNTRY_NAMES = {
+  af: "Afghanistan",
+  al: "Albania",
+  dz: "Algeria",
+  ad: "Andorra",
+  ao: "Angola",
+  ag: "Antigua and Barbuda",
+  ar: "Argentina",
+  am: "Armenia",
+  au: "Australia",
+  at: "Austria",
+  az: "Azerbaijan",
+  bs: "Bahamas",
+  bh: "Bahrain",
+  bd: "Bangladesh",
+  bb: "Barbados",
+  by: "Belarus",
+  be: "Belgium",
+  bz: "Belize",
+  bj: "Benin",
+  bm: "Bermuda",
+  bt: "Bhutan",
+  bo: "Bolivia",
+  ba: "Bosnia and Herzegovina",
+  bw: "Botswana",
+  br: "Brazil",
+  bn: "Brunei",
+  bg: "Bulgaria",
+  bf: "Burkina Faso",
+  bi: "Burundi",
+  kh: "Cambodia",
+  cm: "Cameroon",
+  ca: "Canada",
+  cv: "Cape Verde",
+  ky: "Cayman Islands",
+  cf: "Central African Republic",
+  td: "Chad",
+  cl: "Chile",
+  cn: "China",
+  co: "Colombia",
+  km: "Comoros",
+  cg: "Congo",
+  cd: "DR Congo",
+  cr: "Costa Rica",
+  ci: "Cote d'Ivoire",
+  hr: "Croatia",
+  cu: "Cuba",
+  cw: "Curacao",
+  cy: "Cyprus",
+  cz: "Czechia",
+  dk: "Denmark",
+  dj: "Djibouti",
+  dm: "Dominica",
+  do: "Dominican Republic",
+  ec: "Ecuador",
+  eg: "Egypt",
+  sv: "El Salvador",
+  gq: "Equatorial Guinea",
+  er: "Eritrea",
+  ee: "Estonia",
+  et: "Ethiopia",
+  fj: "Fiji",
+  fi: "Finland",
+  fr: "France",
+  gf: "French Guiana",
+  pf: "French Polynesia",
+  ga: "Gabon",
+  gm: "Gambia",
+  ge: "Georgia",
+  de: "Germany",
+  gh: "Ghana",
+  gi: "Gibraltar",
+  gr: "Greece",
+  gd: "Grenada",
+  gp: "Guadeloupe",
+  gu: "Guam",
+  gt: "Guatemala",
+  gg: "Guernsey",
+  gn: "Guinea",
+  gw: "Guinea-Bissau",
+  gy: "Guyana",
+  ht: "Haiti",
+  hn: "Honduras",
+  hk: "Hong Kong",
+  hu: "Hungary",
+  is: "Iceland",
+  in: "India",
+  id: "Indonesia",
+  ir: "Iran",
+  iq: "Iraq",
+  ie: "Ireland",
+  im: "Isle of Man",
+  il: "Israel",
+  it: "Italy",
+  jm: "Jamaica",
+  jp: "Japan",
+  je: "Jersey",
+  jo: "Jordan",
+  kz: "Kazakhstan",
+  ke: "Kenya",
+  ki: "Kiribati",
+  kw: "Kuwait",
+  kg: "Kyrgyzstan",
+  la: "Laos",
+  lv: "Latvia",
+  lb: "Lebanon",
+  ls: "Lesotho",
+  lr: "Liberia",
+  ly: "Libya",
+  li: "Liechtenstein",
+  lt: "Lithuania",
+  lu: "Luxembourg",
+  mo: "Macau",
+  mg: "Madagascar",
+  mw: "Malawi",
+  my: "Malaysia",
+  mv: "Maldives",
+  ml: "Mali",
+  mt: "Malta",
+  mq: "Martinique",
+  mr: "Mauritania",
+  mu: "Mauritius",
+  mx: "Mexico",
+  md: "Moldova",
+  mc: "Monaco",
+  mn: "Mongolia",
+  me: "Montenegro",
+  ms: "Montserrat",
+  ma: "Morocco",
+  mz: "Mozambique",
+  mm: "Myanmar",
+  na: "Namibia",
+  np: "Nepal",
+  nl: "Netherlands",
+  nc: "New Caledonia",
+  nz: "New Zealand",
+  ni: "Nicaragua",
+  ne: "Niger",
+  ng: "Nigeria",
+  mk: "North Macedonia",
+  no: "Norway",
+  om: "Oman",
+  pk: "Pakistan",
+  pw: "Palau",
+  ps: "Palestine",
+  pa: "Panama",
+  pg: "Papua New Guinea",
+  py: "Paraguay",
+  pe: "Peru",
+  ph: "Philippines",
+  pl: "Poland",
+  pt: "Portugal",
+  pr: "Puerto Rico",
+  qa: "Qatar",
+  re: "Reunion",
+  ro: "Romania",
+  ru: "Russia",
+  rw: "Rwanda",
+  kn: "Saint Kitts and Nevis",
+  lc: "Saint Lucia",
+  vc: "Saint Vincent and the Grenadines",
+  ws: "Samoa",
+  sm: "San Marino",
+  st: "Sao Tome and Principe",
+  sa: "Saudi Arabia",
+  sn: "Senegal",
+  rs: "Serbia",
+  sc: "Seychelles",
+  sl: "Sierra Leone",
+  sg: "Singapore",
+  sx: "Sint Maarten",
+  sk: "Slovakia",
+  si: "Slovenia",
+  sb: "Solomon Islands",
+  so: "Somalia",
+  za: "South Africa",
+  kr: "South Korea",
+  ss: "South Sudan",
+  es: "Spain",
+  lk: "Sri Lanka",
+  sd: "Sudan",
+  sr: "Suriname",
+  se: "Sweden",
+  ch: "Switzerland",
+  sy: "Syria",
+  tw: "Taiwan",
+  tj: "Tajikistan",
+  tz: "Tanzania",
+  th: "Thailand",
+  tl: "Timor-Leste",
+  tg: "Togo",
+  to: "Tonga",
+  tt: "Trinidad and Tobago",
+  tn: "Tunisia",
+  tr: "Turkey",
+  tm: "Turkmenistan",
+  tc: "Turks and Caicos Islands",
+  tv: "Tuvalu",
+  ug: "Uganda",
+  ua: "Ukraine",
+  ae: "United Arab Emirates",
+  gb: "United Kingdom",
+  uk: "United Kingdom",
+  us: "United States",
+  uy: "Uruguay",
+  uz: "Uzbekistan",
+  vu: "Vanuatu",
+  ve: "Venezuela",
+  vn: "Vietnam",
+  vg: "British Virgin Islands",
+  vi: "US Virgin Islands",
+  ye: "Yemen",
+  zm: "Zambia",
+  zw: "Zimbabwe",
+  ai: "Anguilla",
+  aw: "Aruba",
+  bq: "Bonaire"
+};
+const countryName = s => {
+  const t = normLoc(s);
+  if (t.length === 2 && COUNTRY_NAMES[t]) return COUNTRY_NAMES[t];
+  return titleCase(s);
+};
 const isEUCountry = s => EU_SET.has(normLoc(s));
 const isCanadaCountry = s => {
   const t = normLoc(s);
@@ -2125,8 +2348,10 @@ function DocumentView({
     }, "Parcel weight"), /*#__PURE__*/React.createElement("div", {
       className: "font-bold text-lg"
     }, parcel.weight ? parcel.weight + " kg" : "-")), /*#__PURE__*/React.createElement("div", {
-      className: "mt-4 text-xs text-stone-400"
-    }, "Parcel ", parcelNo, " of ", parcels.length));
+      className: "mt-4"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "bg-stone-800 text-white px-3 py-1 rounded text-xs font-semibold"
+    }, "Parcel ", parcelNo)));
   };
   const customsBlock = (parcel, key, pageBreak) => {
     const rows = parcelItems(parcel);
@@ -2283,14 +2508,14 @@ function DocumentView({
       val: a.tel
     }), /*#__PURE__*/React.createElement(F, {
       label: "Destination:",
-      val: titleCase(a.country)
+      val: countryName(a.country)
     }))), /*#__PURE__*/React.createElement("div", {
       className: "font-bold text-sm border-b-2 border-stone-800 mb-2 pb-1"
     }, "FOREIGN PARCEL CONSIGNMENT DETAILS"), /*#__PURE__*/React.createElement("div", {
       className: "grid grid-cols-2 gap-6"
     }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(F, {
       label: "Service:",
-      val: "EMS"
+      val: "PARCEL"
     }), /*#__PURE__*/React.createElement(F, {
       label: "Parcel Type:",
       val: "Poly woven sacks"
@@ -2335,7 +2560,7 @@ function DocumentView({
       className: "flex justify-end mb-3"
     }, /*#__PURE__*/React.createElement("div", {
       className: "bg-stone-800 text-white px-3 py-1 rounded text-xs font-semibold"
-    }, parcel.label, " of ", parcels.length)), /*#__PURE__*/React.createElement(CustomerBlock, null), /*#__PURE__*/React.createElement("div", {
+    }, parcel.label)), /*#__PURE__*/React.createElement(CustomerBlock, null), /*#__PURE__*/React.createElement("div", {
       className: "text-sm font-bold underline uppercase mb-3"
     }, "MANUFACTURERS DECLARATION REGARDING 'CEREAL STRAW and STRAW PRODUCTS'"), /*#__PURE__*/React.createElement("div", {
       className: "text-sm underline mb-1"
@@ -2367,7 +2592,7 @@ function DocumentView({
       className: "flex justify-end mb-3"
     }, /*#__PURE__*/React.createElement("div", {
       className: "bg-stone-800 text-white px-3 py-1 rounded text-xs font-semibold"
-    }, parcel.label, " of ", parcels.length)), /*#__PURE__*/React.createElement(CustomerBlock, null), /*#__PURE__*/React.createElement("div", {
+    }, parcel.label)), /*#__PURE__*/React.createElement(CustomerBlock, null), /*#__PURE__*/React.createElement("div", {
       className: "text-sm font-bold mb-4"
     }, "Invoice number: ", invoiceNo), /*#__PURE__*/React.createElement("p", {
       className: "text-sm leading-relaxed mb-8"
@@ -2393,6 +2618,9 @@ function DocumentView({
     const parcelNo = parcels.findIndex(p => p.id === parcel.id) + 1;
     const invoiceNo = (customer.orderRef || "-") + (parcels.length > 1 ? "/" + parcelNo : "");
     const hsCodes = HS_TYPES.filter(t => parcel.hs && parcel.hs[t.key]).map(t => t.code).join(", ");
+    const cNames = HS_TYPES.filter(t => parcel.hs && parcel.hs[t.key]).map(t => t.label);
+    const cList = cNames.length ? cNames : ["Baskets"];
+    const cJoined = (cList.length === 1 ? cList[0] : cList.slice(0, -1).join(", ") + " and " + cList[cList.length - 1]).toUpperCase();
     return /*#__PURE__*/React.createElement("div", {
       key: key,
       className: "print-area bg-white rounded-xl border border-stone-200 p-8 max-w-2xl mx-auto" + (pageBreak ? " doc-page" : "")
@@ -2402,7 +2630,7 @@ function DocumentView({
       className: "text-xs text-stone-500"
     }, "Memorandum D11-44", /*#__PURE__*/React.createElement("br", null), "Appendix B"), /*#__PURE__*/React.createElement("div", {
       className: "bg-stone-800 text-white px-3 py-1 rounded text-xs font-semibold"
-    }, parcel.label, " of ", parcels.length)), /*#__PURE__*/React.createElement("div", {
+    }, parcel.label)), /*#__PURE__*/React.createElement("div", {
       className: "text-lg font-bold mb-5 text-center"
     }, "Exporter's Statement of Origin"), /*#__PURE__*/React.createElement("p", {
       className: "text-sm leading-relaxed mb-8"
@@ -2432,7 +2660,9 @@ function DocumentView({
       className: "text-xs text-stone-500"
     }, "Signature and date (day/month/year)")), /*#__PURE__*/React.createElement("div", {
       className: "pt-4 font-semibold"
-    }, "BASKETS, HANDWOVEN OF STRAW - HS CODE: ", hsCodes)));
+    }, "HANDWOVEN OF STRAW - ", cJoined), /*#__PURE__*/React.createElement("div", {
+      className: "font-semibold"
+    }, "MFN, GPT")));
   };
   if (docView.type === "ransford-all") {
     if (activeParcels.length === 0) return /*#__PURE__*/React.createElement("div", {
