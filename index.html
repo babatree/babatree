@@ -387,6 +387,7 @@ function(a,b,c){if(!Vd(b))throw Error(n(200));return Wd(null,a,b,!1,c)};Q.unmoun
 
 
 
+
 const {
   useState,
   useMemo
@@ -2612,25 +2613,16 @@ function DocumentView({
       }
       street = body.length ? body[0] : "";
       let rest = body.slice(1);
+      const zipPatterns = [/[A-Z]{1,2}\d[A-Z\d]?\s*[\dO][A-Z]{2}/i, /[A-Z]\d[A-Z]\s*\d[A-Z]\d/i, /\b\d{5}(?:-\d{4})?\b/, /\b\d{4,6}\b/];
       for (let i = rest.length - 1; i >= 0 && !zip; i--) {
-        const toks = rest[i].split(",").map(s => s.trim()).filter(Boolean);
-        for (let j = toks.length - 1; j >= 0; j--) {
-          const m = toks[j].match(zipRe);
+        for (let p = 0; p < zipPatterns.length; p++) {
+          const m = rest[i].match(zipPatterns[p]);
           if (m) {
-            zip = m[1];
-            toks[j] = toks[j].replace(m[1], "").trim();
-          } else if (/\d/.test(toks[j]) && toks[j].length <= 10 && toks[j].split(/\s+/).length <= 2) {
-            zip = toks[j];
-            toks[j] = "";
-          }
-          if (zip) {
-            if (!toks[j]) toks.splice(j, 1);
+            zip = m[0].trim();
+            const left = (rest[i].slice(0, m.index) + rest[i].slice(m.index + m[0].length)).replace(/\s{2,}/g, " ").replace(/^[,\s]+|[,\s]+$/g, "").trim();
+            if (left) rest[i] = left;else rest.splice(i, 1);
             break;
           }
-        }
-        if (zip) {
-          const rj = toks.join(", ");
-          if (rj) rest[i] = rj;else rest.splice(i, 1);
         }
       }
       city = rest.join(", ");
@@ -3020,6 +3012,7 @@ function DocumentView({
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/*#__PURE__*/React.createElement(App, null));
+
 
 
 
