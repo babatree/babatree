@@ -380,6 +380,11 @@ function(a,b,c){if(!Vd(b))throw Error(n(200));return Wd(null,a,b,!1,c)};Q.unmoun
 <script>/* App (precompiled, no Babel needed) */
 
 
+
+
+
+
+
 const {
   useState,
   useMemo
@@ -392,10 +397,12 @@ const Barcode = ({
   React.useEffect(() => {
     if (ref.current && value && window.JsBarcode) {
       try {
-        window.JsBarcode(ref.current, String(value), {
+        const v = String(value);
+        const bw = v.length > 12 ? 1.1 : v.length > 8 ? 1.5 : v.length > 5 ? 2.0 : 2.6;
+        window.JsBarcode(ref.current, v, {
           format: "CODE128",
           height: 38,
-          width: 2.6,
+          width: bw,
           displayValue: false,
           margin: 0
         });
@@ -404,7 +411,8 @@ const Barcode = ({
   }, [value]);
   if (!value) return null;
   return /*#__PURE__*/React.createElement("svg", {
-    ref: ref
+    ref: ref,
+    style: { maxWidth: "100%", height: "auto" }
   });
 };
 const Svg = ({
@@ -984,7 +992,16 @@ const isCanadaCountry = s => {
 const TROPICAL_SET = new Set(["mu", "mauritius", "mx", "mexico", "bs", "bahamas", "thebahamas", "co", "colombia", "ec", "ecuador", "pe", "peru", "bo", "bolivia", "ve", "venezuela", "gy", "guyana", "sr", "suriname", "gf", "frenchguiana", "es", "spain", "au", "australia", "nz", "newzealand", "in", "india", "cl", "chile", "bz", "belize", "gt", "guatemala", "sv", "elsalvador", "hn", "honduras", "ni", "nicaragua", "cr", "costarica", "pa", "panama", "ag", "antiguaandbarbuda", "antigua", "bb", "barbados", "cu", "cuba", "dm", "dominica", "do", "dominicanrepublic", "gd", "grenada", "ht", "haiti", "jm", "jamaica", "kn", "saintkittsandnevis", "stkittsandnevis", "lc", "saintlucia", "stlucia", "vc", "saintvincentandthegrenadines", "stvincentandthegrenadines", "saintvincent", "tt", "trinidadandtobago", "trinidad", "ai", "anguilla", "aw", "aruba", "bq", "bonaire", "caribbeannetherlands", "vg", "britishvirginislands", "ky", "caymanislands", "cw", "curacao", "cura\u00e7ao", "gp", "guadeloupe", "mq", "martinique", "ms", "montserrat", "pr", "puertorico", "sx", "sintmaarten", "mf", "saintmartin", "stmartin", "tc", "turksandcaicos", "turksandcaicosislands", "vi", "usvirginislands", "bl", "saintbarthelemy", "stbarthelemy"]);
 const isTropicalCountry = s => TROPICAL_SET.has(normLoc(s));
 const getDestCountry = addr => {
-  const lines = (addr || "").split("\n").map(x => x.trim()).filter(Boolean).filter(l => !/^tel[:\s]/i.test(l));
+  const lines = (addr || "").split("\n").map(x => x.trim()).filter(Boolean).filter(l => !/^tel[:\s]/i.test(l)).filter(l => !/^[+(]?[\d][\d\s().\-]{5,}$/.test(l));
+  const KNOWN = new Set([...EU_SET, ...TROPICAL_SET, "ca", "canada", "us", "usa", "unitedstates", "unitedstatesofamerica", "gb", "uk", "unitedkingdom", "greatbritain"]);
+  const strip = t => normLoc(t.replace(/\d+/g, ""));
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const toks = lines[i].split(",").map(s => s.trim()).filter(Boolean);
+    for (let j = toks.length - 1; j >= 0; j--) {
+      if (KNOWN.has(strip(toks[j]))) return toks[j].replace(/\d+/g, "").trim();
+    }
+    if (KNOWN.has(strip(lines[i]))) return lines[i].replace(/\d+/g, "").trim();
+  }
   return lines.length ? lines[lines.length - 1] : "";
 };
 const MANDEC_LINES = ["The straw that we utilise has been harvested 300 klms to 600 klms south of the Baba Tree's production centre (which is located in Bolgatanga, Upper East Region, in Ghana's north)", "Before the straw is moved from the harvesting area to the drying warehouse, the part of the plant that contains the seeds is cut off.", "The stalks of the straw are then transported to a drying warehouse where the stalks are dried for at least two weeks.", "The thoroughly dried stalks are then tied into bundles and transported from the south of Ghana to the north - to Bolgatanga", "This type of straw, 'Pennisetum Straw' does not grow in the very dry north of Ghana (in which Bolgatanga is located)", "Once the bundles of straw reach the Baba Tree compound, each strand of straw is split into two pieces by hand. The two pieces of straw are then rolled together to create one strand of straw.", "Once the straw has been split and rolled, it is washed in hot, soapy water that also contains chlorine bleach (100 ml per litre of water). Water temperature: 80 Celsius.", "The straw is then boiled in water containing two grams of salt per litre at a temperature of 100.2 degrees Celsius for 45 minutes.", "Furthermore, the straw is then dyed in water containing chemical dyes, two grams of salt per litre, and is brought to a consistent temperature of 100.20 Celsius for 45 minutes.", "To conclude, after being bleached in hot water, the straw from vetiver grass (Pennisetum Purpurreum) has been boiled for at least 90 minutes at a temperature of 100.2 degrees Celsius in water containing two grams of salt per litre and chemical dyes.", "The straw is completely free of seeds, soil, insects, or any other organic matter."];
@@ -2235,21 +2252,35 @@ function App() {
     className: "text-xs font-normal text-stone-400"
   }, "(Gilbert)")), /*#__PURE__*/React.createElement("p", {
     className: "text-xs text-stone-400 mb-3"
-  }, "Enter discount, tax, shipping, and payment below, then create the final customer invoice. Discount and tax are percentages; shipping and payment are fixed amounts. All in USD, and shown on the customer invoice only."), /*#__PURE__*/React.createElement("div", {
+  }, "Enter discount, tax, shipping, and payment below, then create the final customer invoice. Tax is a percentage; shipping and payment are fixed amounts; discount can be either - use the %/$ selector. All in USD, and shown on the customer invoice only."), /*#__PURE__*/React.createElement("div", {
     style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginBottom: "16px" }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     className: "text-xs text-stone-500"
-  }, "Discount (%)"), /*#__PURE__*/React.createElement("input", {
+  }, "Discount"), /*#__PURE__*/React.createElement("div", {
+    style: { display: "flex", gap: "4px", marginTop: "4px" }
+  }, /*#__PURE__*/React.createElement("select", {
+    className: "border border-stone-300 rounded-lg px-1 py-1.5",
+    style: { width: "46px" },
+    value: extras.discountType,
+    onChange: e => setExtras({
+      ...extras,
+      discountType: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "percent"
+  }, "%"), /*#__PURE__*/React.createElement("option", {
+    value: "amount"
+  }, "$")), /*#__PURE__*/React.createElement("input", {
     type: "number",
     min: "0",
     step: "0.01",
-    className: "w-full border border-stone-300 rounded-lg px-2 py-1.5 mt-1",
+    className: "w-full border border-stone-300 rounded-lg px-2 py-1.5",
     value: extras.discountValue,
     onChange: e => setExtras({
       ...extras,
       discountValue: Math.max(0, parseFloat(e.target.value) || 0)
     })
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     className: "text-xs text-stone-500"
   }, "Tax (%)"), /*#__PURE__*/React.createElement("input", {
     type: "number",
@@ -2434,7 +2465,9 @@ function DocumentView({
   }, customer.orderRef)) : null), /*#__PURE__*/React.createElement("div", null, "Date: ", /*#__PURE__*/React.createElement("span", {
     className: "text-stone-700"
   }, new Date().toLocaleDateString()))));
-  const CustomerBlock = () => /*#__PURE__*/React.createElement("div", {
+  const CustomerBlock = ({
+    euCode
+  } = {}) => /*#__PURE__*/React.createElement("div", {
     className: "mb-5 text-sm"
   }, /*#__PURE__*/React.createElement("div", {
     className: "text-stone-500 text-xs"
@@ -2442,7 +2475,9 @@ function DocumentView({
     className: "font-semibold"
   }, titleCase(customer.name) || "-"), /*#__PURE__*/React.createElement("div", {
     className: "whitespace-pre-line text-stone-600"
-  }, formatAddress(customer.address)));
+  }, formatAddress(customer.address)), euCode && isEUCountry(getDestCountry(customer.address)) ? /*#__PURE__*/React.createElement("div", {
+    className: "text-stone-700 font-semibold mt-1"
+  }, "REX No.: " + euCode) : null);
   const ConversionNote = () => !isUSD ? /*#__PURE__*/React.createElement("div", {
     className: "text-xs text-stone-400 mt-3"
   }, "Amounts shown in USD, converted from ", currency, " at 1 ", currency, " = ", money(rate), " USD.") : null;
@@ -2509,7 +2544,9 @@ function DocumentView({
       className: "text-xl font-bold tracking-wide"
     }, "CUSTOMS INVOICE"), /*#__PURE__*/React.createElement("div", {
       className: "parcel-badge"
-    }, parcel.label, " of ", parcels.length)), /*#__PURE__*/React.createElement(CustomerBlock, null), /*#__PURE__*/React.createElement("div", {
+    }, parcel.label, " of ", parcels.length)), /*#__PURE__*/React.createElement(CustomerBlock, {
+      euCode: "GHEU00C000099605X"
+    }), /*#__PURE__*/React.createElement("div", {
       className: "text-xs text-stone-500 mb-3"
     }, "Country of origin: ", /*#__PURE__*/React.createElement("span", {
       className: "font-semibold text-stone-700"
@@ -2771,7 +2808,7 @@ function DocumentView({
       className: "mt-1"
     }, today)), /*#__PURE__*/React.createElement("div", {
       className: "mt-8 text-xs text-stone-500 border-t border-stone-300 pt-3"
-    }, /*#__PURE__*/React.createElement("div", null, "E: wholesale@babatree.com \xA0\xA0 Admin@babatree.com"), /*#__PURE__*/React.createElement("div", null, "Tel: 233-54-572-3486 \xA0\xA0 www.babatree.com")));
+    }, /*#__PURE__*/React.createElement("div", null, "E: wholesale@babatree.com"), /*#__PURE__*/React.createElement("div", null, "Tel: 233-54-572-3486 \xA0\xA0 www.babatree.com")));
   };
   const canadaBlock = (parcel, key, pageBreak) => {
     const parcelNo = parcels.findIndex(p => p.id === parcel.id) + 1;
@@ -2893,7 +2930,7 @@ function DocumentView({
         .inv-party{font-size:12px;line-height:1.5;color:#44403c;}
         .inv-party .nm{font-weight:bold;color:#292524;}
         .inv-party .ad{white-space:pre-line;}
-        .inv-no{font-family:Georgia,serif;font-size:22px;font-weight:bold;margin:0 0 8px;color:#292524;}
+        .inv-no{font-family:Georgia,serif;font-size:17px;font-weight:bold;margin:0 0 8px;color:#292524;word-break:break-word;}
         .inv-no span{color:#7d8b4e;}
         .inv-meta{font-size:12px;line-height:1.7;}
         .inv-meta .r{display:flex;}
@@ -2902,7 +2939,7 @@ function DocumentView({
         .inv-tbl{width:calc(100% - 72px);margin:18px 36px 0;border-collapse:collapse;font-size:13px;}
         .inv-tbl thead th{background:#7d8b4e;color:#fff;font-family:Helvetica,Arial,sans-serif;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:10px 12px;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
         .inv-tbl thead th.l{text-align:left;}
-        .inv-tbl tbody td{padding:10px 12px;border-bottom:1px solid #eee;text-align:right;}
+        .inv-tbl tbody td{padding:6px 12px;border-bottom:1px solid #cfc9bf;text-align:right;}
         .inv-tbl tbody td.l{text-align:left;}
         .inv-tbl tbody tr:nth-child(even){background:#faf9f6;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
         .inv-tot{display:flex;justify-content:flex-end;padding:14px 36px 4px;}
@@ -2949,7 +2986,7 @@ function DocumentView({
         (payment > 0 ? h("div", { className: "r" }, h("div", { className: "k" }, "Payment"), h("div", null, "- $" + money(payment))) : null),
         h("div", { className: "inv-grand" }, h("div", { className: "k" }, payment > 0 ? "Balance Due" : "Total Due"), h("div", { className: "v" }, "$" + money(payment > 0 ? balance : grand)))
       )),
-      h("div", { className: "inv-foot" }, h("div", { className: "ty" }, "Thank you for supporting handwoven craft."), "Every basket is handwoven by artisans in Bolgatanga, Ghana. Questions about this invoice? Email admin@babatree.com · www.babatree.com")
+      h("div", { className: "inv-foot" }, h("div", { className: "ty" }, "Thank you for trading with The Baba Tree"), "Every basket is handwoven by artisans in Bolgatanga, Ghana. Questions about this invoice? Email wholesale@babatree.com · www.babatree.com")
     );
   }
   return /*#__PURE__*/React.createElement("div", {
@@ -2958,6 +2995,11 @@ function DocumentView({
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/*#__PURE__*/React.createElement(App, null));
+
+
+
+
+
 
 
 </script>
