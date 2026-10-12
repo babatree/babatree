@@ -385,6 +385,8 @@ function(a,b,c){if(!Vd(b))throw Error(n(200));return Wd(null,a,b,!1,c)};Q.unmoun
 
 
 
+
+
 const {
   useState,
   useMemo
@@ -2590,32 +2592,55 @@ function DocumentView({
     const lines = [];
     all.forEach(l => {
       const m = l.match(/^tel[:\s]*(.*)$/i);
-      if (m) tel = m[1].trim();else lines.push(l);
+      if (m) tel = m[1].trim();else if (/^[+(]?[\d][\d\s().\-]{5,}$/.test(l)) {
+        if (!tel) tel = l;
+      } else lines.push(l);
     });
-    let country = "",
+    let company = "",
+      street = "",
       city = "",
       zip = "",
-      street = "";
+      country = "";
+    const streetKw = /(road|\brd\b|street|\bst\b|ave|avenue|lane|\bln\b|drive|\bdr\b|close|\bway\b|court|\bct\b|place|\bpl\b|unit|suite|\bste\b|apt|block|house|boulevard|blvd|calle|\brue\b|\bvia\b|strasse|p\.?\s?o\.?\s?box|\bbox\b)/i;
+    const zipRe = /([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|\d{4,6}(?:-\d{4})?)/i;
     if (lines.length) {
       country = lines[lines.length - 1];
-      const rest = lines.slice(0, -1);
-      if (rest.length) {
-        const cityLine = rest[rest.length - 1];
-        const toks = cityLine.split(",").map(s => s.trim()).filter(Boolean);
-        if (toks.length && /\d/.test(toks[toks.length - 1])) {
-          zip = toks[toks.length - 1];
-          city = toks.slice(0, -1).join(", ");
-        } else {
-          city = cityLine;
-        }
-        street = rest.slice(0, -1).join(", ");
+      let body = lines.slice(0, -1);
+      if (body.length >= 3 && !/\d/.test(body[0]) && !streetKw.test(body[0])) {
+        company = body[0];
+        body = body.slice(1);
       }
+      street = body.length ? body[0] : "";
+      let rest = body.slice(1);
+      for (let i = rest.length - 1; i >= 0 && !zip; i--) {
+        const toks = rest[i].split(",").map(s => s.trim()).filter(Boolean);
+        for (let j = toks.length - 1; j >= 0; j--) {
+          const m = toks[j].match(zipRe);
+          if (m) {
+            zip = m[1];
+            toks[j] = toks[j].replace(m[1], "").trim();
+          } else if (/\d/.test(toks[j]) && toks[j].length <= 10 && toks[j].split(/\s+/).length <= 2) {
+            zip = toks[j];
+            toks[j] = "";
+          }
+          if (zip) {
+            if (!toks[j]) toks.splice(j, 1);
+            break;
+          }
+        }
+        if (zip) {
+          const rj = toks.join(", ");
+          if (rj) rest[i] = rj;else rest.splice(i, 1);
+        }
+      }
+      city = rest.join(", ");
     }
-    if (!street) {
+    if (!street && !company) {
       street = lines.length > 1 ? lines.slice(0, -1).join(", ") : addr || "";
       if (lines.length <= 1) country = "";
     }
     return {
+      company,
       street,
       city,
       zip,
@@ -2673,7 +2698,7 @@ function DocumentView({
       val: titleCase(customer.name)
     }), /*#__PURE__*/React.createElement(F, {
       label: "Company Name:",
-      val: ""
+      val: titleCase(a.company)
     }), /*#__PURE__*/React.createElement(F, {
       label: "Location Address:",
       val: titleCase(a.street)
@@ -2995,6 +3020,8 @@ function DocumentView({
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/*#__PURE__*/React.createElement(App, null));
+
+
 
 
 
