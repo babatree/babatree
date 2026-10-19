@@ -388,6 +388,7 @@ function(a,b,c){if(!Vd(b))throw Error(n(200));return Wd(null,a,b,!1,c)};Q.unmoun
 
 
 
+
 const {
   useState,
   useMemo
@@ -1121,6 +1122,8 @@ function App() {
   const [custType, setCustType] = useState("retail");
   const [savedOrders, setSavedOrders] = useState([]);
   const [storageMsg, setStorageMsg] = useState("");
+  const [importText, setImportText] = useState("");
+  const [packCode, setPackCode] = useState("");
   const isUSD = currency.toUpperCase() === "USD";
   React.useEffect(() => {
     refreshList();
@@ -1195,6 +1198,66 @@ function App() {
     } catch (e) {}
     if (orderId === id) setOrderId(null);
     refreshList();
+  };
+  const sendToPacking = () => {
+    if (items.filter(it => it.name.trim()).length === 0) {
+      flash("Add items first.");
+      return;
+    }
+    const payload = {
+      v: 1,
+      t: "order",
+      customer,
+      custType,
+      currency,
+      rate,
+      items,
+      extras
+    };
+    const code = "BTO1:" + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    setPackCode(code);
+    try {
+      if (navigator.clipboard) navigator.clipboard.writeText(code);
+    } catch (e) {}
+    const body = "An order is ready for packing.\n\nIn the Baba Tree app, open \"Import order\" and paste the code below:\n\n" + code;
+    const mail = "mailto:?subject=" + encodeURIComponent("Baba Tree - order for packing" + (customer.orderRef ? " (" + customer.orderRef + ")" : "")) + "&body=" + encodeURIComponent(body);
+    try {
+      window.location.href = mail;
+    } catch (e) {}
+    flash("Code copied and email opened.");
+  };
+  const importOrder = async () => {
+    const txt = (importText || "").trim();
+    const idx = txt.indexOf("BTO1:");
+    if (idx === -1) {
+      flash("That doesn't look like an order code.");
+      return;
+    }
+    try {
+      const b64 = txt.slice(idx + 5).trim().replace(/\s+/g, "");
+      const p = JSON.parse(decodeURIComponent(escape(atob(b64))));
+      const id = "order:" + uid();
+      const record = {
+        id,
+        ref: p.customer && p.customer.orderRef || "",
+        status: "Packing",
+        custType: p.custType || "retail",
+        customer: p.customer || blankCustomer(),
+        currency: p.currency || "USD",
+        rate: p.rate || 1,
+        items: p.items || [],
+        parcels: [],
+        extras: p.extras || blankExtras(),
+        notify: blankNotify(),
+        updatedAt: Date.now()
+      };
+      await store.set(id, JSON.stringify(record));
+      setImportText("");
+      refreshList();
+      flash("Order imported into Saved orders.");
+    } catch (e) {
+      flash("Could not read that code. Copy the whole code and try again.");
+    }
   };
   const exportData = () => {
     try {
@@ -1841,6 +1904,23 @@ function App() {
   }), " ", /*#__PURE__*/React.createElement("span", null, csvNote))), /*#__PURE__*/React.createElement("div", {
     className: "bg-white rounded-xl border border-stone-200 p-5"
   }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 mb-3 font-semibold"
+  }, /*#__PURE__*/React.createElement(Upload, {
+    size: 18
+  }), " Import order (paste code)"), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-stone-400 mb-2"
+  }, "Got an order code by email? Paste it below to load the order into Saved orders."), /*#__PURE__*/React.createElement("textarea", {
+    className: "w-full border border-stone-300 rounded-lg px-3 py-2 text-xs",
+    rows: 3,
+    placeholder: "Paste the order code here (it starts with BTO1:)",
+    value: importText,
+    onChange: e => setImportText(e.target.value)
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "mt-2 inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg",
+    onClick: importOrder
+  }, "Import order")), /*#__PURE__*/React.createElement("div", {
+    className: "bg-white rounded-xl border border-stone-200 p-5"
+  }, /*#__PURE__*/React.createElement("div", {
     className: "font-semibold mb-3"
   }, "Customer details"), /*#__PURE__*/React.createElement("div", {
     className: "grid sm:grid-cols-2 gap-3"
@@ -1997,14 +2077,39 @@ function App() {
   }, "In USD: ", /*#__PURE__*/React.createElement("span", {
     className: "font-semibold text-stone-700"
   }, "$" + money(orderTotal * effectiveRate)))))), /*#__PURE__*/React.createElement("div", {
-    className: "flex justify-end"
+    className: "flex justify-end gap-3"
   }, /*#__PURE__*/React.createElement("button", {
+    onClick: sendToPacking,
+    disabled: items.filter(it => it.name.trim()).length === 0,
+    className: "inline-flex items-center gap-2 bg-stone-700 hover:bg-stone-800 disabled:bg-stone-300 text-white px-5 py-2.5 rounded-lg font-semibold"
+  }, /*#__PURE__*/React.createElement(Upload, {
+    size: 18
+  }), " Send to packing"), /*#__PURE__*/React.createElement("button", {
     onClick: startParcels,
     disabled: items.filter(it => it.name.trim()).length === 0,
     className: "inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:bg-stone-300 text-white px-5 py-2.5 rounded-lg font-semibold"
   }, /*#__PURE__*/React.createElement(Package, {
     size: 18
-  }), " Next: split into parcels"))), screen === "parcels" && /*#__PURE__*/React.createElement("div", {
+  }), " Next: split into parcels")), packCode && /*#__PURE__*/React.createElement("div", {
+    className: "bg-stone-50 border border-stone-200 rounded-xl p-4 mt-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-semibold mb-1"
+  }, "Order code for packing"), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-stone-500 mb-2"
+  }, "An email was opened with this code. If it didn't open, copy the code and email it to the packing team."), /*#__PURE__*/React.createElement("textarea", {
+    readOnly: true,
+    className: "w-full border border-stone-300 rounded-lg px-2 py-1.5 text-xs bg-white",
+    rows: 3,
+    value: packCode
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "mt-2 inline-flex items-center gap-2 bg-stone-700 hover:bg-stone-800 text-white px-4 py-2 rounded-lg text-sm",
+    onClick: () => {
+      try {
+        if (navigator.clipboard) navigator.clipboard.writeText(packCode);
+        flash("Code copied.");
+      } catch (e) {}
+    }
+  }, "Copy code"))), screen === "parcels" && /*#__PURE__*/React.createElement("div", {
     className: "space-y-6"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between"
@@ -3012,6 +3117,7 @@ function DocumentView({
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/*#__PURE__*/React.createElement(App, null));
+
 
 
 
